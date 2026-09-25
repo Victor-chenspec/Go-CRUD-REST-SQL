@@ -7,6 +7,7 @@ import (
 	"task-api/internal/handler"
 	"task-api/internal/repository"
 	"task-api/internal/service"
+	"task-api/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -41,6 +42,9 @@ func main() {
 	TaskHandler := handler.NewTaskHandler(TaskService)
 
 	router := gin.Default()
+
+	//Middleware
+	router.Use(middleware.ErrorHandler())
 
 	//User Route
 	router.GET("/user",UserHandler.GetAllUsers)

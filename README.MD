@@ -10,7 +10,11 @@ internal/handler/    # HTTP handlers
 internal/service/    # business layer
 internal/repository/ # PostgreSQL queries
 internal/model/      # request/response structs
+apperror/            # typed HTTP errors
+middleware/          # Gin error handler
 ```
+
+User handlers attach errors with `ctx.Error`. A global `ErrorHandler` middleware then writes the JSON response. Task handlers still write status and body directly; the payload shape is the same (`{"error": "..."}`).
 
 ## Prerequisites
 
@@ -58,7 +62,7 @@ go mod download
 go run ./cmd/server
 ```
 
-The process loads `.env`, connects to Postgres, then starts Gin on `PORT`.
+The process loads `.env`, connects to Postgres, registers `middleware.ErrorHandler()`, then starts Gin on `PORT`.
 
 ## API
 
@@ -159,15 +163,25 @@ Content-Type: application/json
 }
 ```
 
-### Status codes
+### Errors
+
+Failure bodies look like:
+
+```json
+{
+  "error": "User not found"
+}
+```
 
 | Code | When |
 |------|------|
 | `200` | Success |
 | `201` | Created |
-| `404` | User/task not found |
+| `404` | User/task not found (user routes: `apperror.NotFound`; task update/delete still return `"User not found"`) |
 | `422` | Invalid id or JSON / validation |
-| `500` | Database or other server error |
+| `500` | Database error, or an untyped error caught by middleware (`"Internal server error"`) |
+
+User service maps repository failures to `apperror.InternalError("Database error")` and missing rows to `apperror.NotFound("User not found")`. Task routes do not use `apperror` yet.
 
 ## Example curl
 
